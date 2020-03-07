@@ -1,0 +1,38 @@
+version: '3'
+services: 
+  DG11:
+    image: oracle/database:19.3.0-ee
+    container_name: DG11
+    volumes:
+      - "/Users/sean.scott/oradata/DG11:/opt/oracle/oradata"
+      - "/Users/sean.scott/docker-dataguard:/opt/oracle/scripts"
+    environment:
+      CONTAINER_NAME: DG11
+      DG_CONFIG: DG1
+      DG_TARGET: DG21
+      ORACLE_PDB: DG11PDB1
+      ORACLE_PWD: oracle
+      ORACLE_SID: DG11
+      DB_UNQNAME: DG11
+      ROLE: PRIMARY
+    ports:
+      - "1211:1521"
+
+  DG21:
+    image: oracle/database:19.3.0-ee
+    container_name: DG21
+    volumes:
+      - "/Users/sean.scott/oradata/DG21:/opt/oracle/oradata"
+      - "/Users/sean.scott/docker-dataguard:/opt/oracle/scripts"
+    environment:
+      CONTAINER_NAME: DG21
+      DG_CONFIG: DG1
+      DG_TARGET: DG11
+      ORACLE_PDB: DG11PDB1
+      ORACLE_PWD: oracle
+      ORACLE_SID: DG11
+      DB_UNQNAME: DG21
+      ROLE: STANDBY
+    ports:
+      - "1212:1521"
+

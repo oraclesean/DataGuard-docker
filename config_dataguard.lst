@@ -1,0 +1,3 @@
+# Host | ID | Role    | DG Cfg | SID  | DB_UNQNAME | DG_TARGET | ORACLE_PWD
+DG11   | 1  | PRIMARY | DG1    | DG11 | DG11       | DG21      | oracle
+DG21   | 2  | STANDBY | DG1    | DG11 | DG21       | DG11      | oracle
