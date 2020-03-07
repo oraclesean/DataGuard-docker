@@ -2,6 +2,39 @@
 
 Files for building an Oracle Data Guard database in Docker
 
+Currently working for version 19.3.
+
+# What does it do?
+This creates two containers each hosting Oracle databases and configures them as a Data Guard primary/secondary.
+
+The primary database is built much the same as in an ordinary Docker build. Additional configurations and parameters are added to satisfy the requirements of Data Guard. Standby redo logs are added.
+
+Meanwhile the standby database is initiated but does not run DBCA.
+
+When the database configuration on the primary is complete, it begins an RMAN duplicate and instantiates the standby database. 
+
+Data Guard broker is invoked to create a configuration and add the databases. It also adds static connect identifiers to overcome issues arising from Docker's host-naming.
+
+The containers are visible across the Docker network by the names assigned in the compose yaml file (default are DG11 and DG21) and all TNS/networking operations can be conduced using those aliases.
+
+The two containers are built with an environment variable called ROLE. This is initially set to PRIMARY and STANDBY to faciliate the intial installation. Once database is creation is complete the variable has no meaning. The role of a database is determined at startup in the startDB.sh script by querying the current role of the instance. This allows the database to be started/resume the correct role through a start/stop of compose.
+
+NOTE: Data Guard requires your database to be in archivelog mode. Manage archive log directories accordingly.
+
+## Information
+The 19.3 database image is 6.65G.
+```
+> docker images 
+REPOSITORY                         TAG                 IMAGE ID            CREATED             SIZE
+oracle/database                    19.3.0-ee           ea261e0fff26        2 hours ago         6.65GB
+```
+The default build opens ports 1521 and 5500. It translates port 1521 to 1211 on the first host and 1212 on the second. This may be changed in docker-compose.yml.
+
+The default build maps the data volume to a local directory on the host. Change or remove this in the docker-compose.yml.
+
+## Errata
+The setupLinuxEnv.sh script for this build includes `vi` and `less` for troubleshooting purposes. If you're looking for a very slightly smaller image, remove them. :)
+
 ## Setup
 
 Set Docker's memory limit to at least 8G
@@ -15,18 +48,14 @@ LINUX.X64_193000_db_home.zip
 ```
 
 ## Set the environment
-The ORA_DOCKER_DIR is the location of the existing docker-images directory. The ORADATA_VOLUME is for persisting data for the databases. Each database will inhabit a subdirectory of ORADATA_VOLUME based on the database unique name.
+The ORADATA_VOLUME is for persisting data for the databases. Each database will inhabit a subdirectory of ORADATA_VOLUME based on the database unique name. DG_DIR is the base directory for this repo.
 ```
 export COMPOSE_YAML=docker-compose.yml
 export DB_VERSION=19.3.0
 export IMAGE_NAME=oracle/database:${DB_VERSION}-ee
-export ORA_DOCKER_DIR=~/docker
 export ORADATA_VOLUME=~/oradata
 export DG_DIR=~/docker-dataguard
 ```
-
-## Copy the Oracle Docker files from their current location to the DG directory:
-`cp $ORA_DOCKER_DIR/docker-images/OracleDatabase/SingleInstance/dockerfiles/$DB_VERSION/* $DG_DIR`
 
 ## Copy the downloaded Oracle database installation files to the DG directory:
 ```
@@ -45,75 +74,34 @@ cp LINUX.X64_193000_db_home.zip $DG_DIR/$DB_VERSION
 ## Tail the logs
 `docker-compose logs -f`
 
-# OPTIONAL STEPS
+# Testing
+The build has been tested by starting the databases under docker-compose and running DGMGRL validations and switchover through a variety of scenarios. It correctly resumes the configuration across stops/starts of docker-compose.
+
+Please report any issues to oracle.sean@gmail.com. Thanks!
+
+# CUSTOM CONFIGURATION
 ## Database configurations
 Customize a configuration file for setting up the contaner hosts using the following format if the existing config_dataguard.lst does not meet your needs. This file is used for automated setup of the environment.
 
-The container name is the DB_UNIQUE_NAME.
-The pluggable database is ${ORACLE_SID}PDB1.
+The pluggable database is ${ORACLE_SID}PDB1. The default configuration is:
 
 ```
 cat << EOF > $DG_DIR/config_dataguard.lst
-# Container | ID | Role   | DG Config | SID  | DG_TARGET | Oracle Pass
-DG11        | 1  | PRIMARY| DG1       | DG11 | DG21      | oracle
-DG21        | 2  | STANDBY| DG1       | DG11 | DG11      | oracle
+# Host | ID | Role    | DG Cfg | SID  | DB_UNQNAME | DG_TARGET | ORACLE_PWD
+DG11   | 1  | PRIMARY | DG1    | DG11 | DG11       | DG21      | oracle
+DG21   | 2  | STANDBY | DG1    | DG11 | DG21       | DG11      | oracle
 EOF
 ```
 
 ## Docker compose file, TNS configuration
-If using a custom dataguard configuration (above) there will need to be changes to the TNS configuration and Docker compose file.
+If the ORACLE_SID or host names are changed, the TNS configuration must be update to match.
 
-### Create a docker-compose file and build tnsnames.ora, listener.ora files
+### Create a docker-compose file using a custom configuration and build the tnsnames.ora, listener.ora files
+The `createCompose.sh` script will create the yaml file and the necessary TNS entries by reading the config file:
 ```
-# Initialize the files:
-cat << EOF > $COMPOSE_YAML
-version: '3'
-services: 
-EOF
-
-cat << EOF > $DG_DIR/tnsnames.ora
-# tnsnames.ora extension for Data Guard demo
-EOF
-
-# Populate the docker-compose.yml file:
-egrep -v "^$|^#" $DG_DIR/config_dataguard.lst | sed -e 's/[[:space:]]//g' | sort | while IFS='|' read CONTAINER_NAME CONTAINER_ID ROLE DG_CONFIG ORACLE_SID DG_TARGET ORACLE_PWD
-do
-
-# Write the Docker compose file entry:
-cat << EOF >> $COMPOSE_YAML
-  $CONTAINER_NAME:
-    image: $IMAGE_NAME
-    container_name: $CONTAINER_NAME
-    volumes:
-      - "$ORADATA_VOLUME/$CONTAINER_NAME:/opt/oracle/oradata"
-      - "$DG_DIR:/opt/oracle/scripts"
-    environment:
-      CONTAINER_NAME: $CONTAINER_NAME
-      DG_CONFIG: $DG_CONFIG
-      DG_TARGET: $DG_TARGET
-      ORACLE_PDB: ${ORACLE_SID}PDB1
-      ORACLE_PWD: $ORACLE_PWD
-      ORACLE_SID: $ORACLE_SID
-      ROLE: $ROLE
-    ports:
-      - "121$CONTAINER_ID:1521"
-
-EOF
-
-# Write the tnsnames.ora entry:
-cat << EOF >> $DG_DIR/tnsnames.ora
-$CONTAINER_NAME=
-(DESCRIPTION =
-  (ADDRESS = (PROTOCOL = TCP)(HOST = $CONTAINER_NAME)(PORT = 1521))
-  (CONNECT_DATA =
-    (SERVER = DEDICATED)
-    (SERVICE_NAME = $ORACLE_SID)
-  )
-)
-EOF
-
-done
+./createCompose.sh
 ```
+
 # Cleanup
 ## To stop compose, remove any existing image and prune the images:
 ```
@@ -129,3 +117,4 @@ if [[ "$ORADATA_VOLUME" ]] && [ -d "$ORADATA_VOLUME" ]
 fi
 #rm -Rf ~/oradata/DG*
 ```
+

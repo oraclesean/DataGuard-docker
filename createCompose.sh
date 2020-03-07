@@ -1,6 +1,5 @@
 # Set variables for environment
 export DG_DIR=~/docker-dataguard
-export ORA_DOCKER_DIR=~/docker
 export ORADATA_VOLUME=~/oradata
 
 # Set variables used by Docker, Compose:

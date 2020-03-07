@@ -4,8 +4,8 @@ services:
     image: oracle/database:19.3.0-ee
     container_name: DG11
     volumes:
-      - "/Users/sean.scott/oradata/DG11:/opt/oracle/oradata"
-      - "/Users/sean.scott/docker-dataguard:/opt/oracle/scripts"
+      - "~/oradata/DG11:/opt/oracle/oradata"
+      - "~/docker-dataguard:/opt/oracle/scripts"
     environment:
       CONTAINER_NAME: DG11
       DG_CONFIG: DG1
@@ -22,8 +22,8 @@ services:
     image: oracle/database:19.3.0-ee
     container_name: DG21
     volumes:
-      - "/Users/sean.scott/oradata/DG21:/opt/oracle/oradata"
-      - "/Users/sean.scott/docker-dataguard:/opt/oracle/scripts"
+      - "~/oradata/DG21:/opt/oracle/oradata"
+      - "~/docker-dataguard:/opt/oracle/scripts"
     environment:
       CONTAINER_NAME: DG21
       DG_CONFIG: DG1
