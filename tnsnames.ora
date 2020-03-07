@@ -1,0 +1,17 @@
+# tnsnames.ora extension for Data Guard demo
+DG11=
+(DESCRIPTION =
+  (ADDRESS = (PROTOCOL = TCP)(HOST = DG11)(PORT = 1521))
+  (CONNECT_DATA =
+    (SERVER = DEDICATED)
+    (SID = DG11)
+  )
+)
+DG21=
+(DESCRIPTION =
+  (ADDRESS = (PROTOCOL = TCP)(HOST = DG21)(PORT = 1521))
+  (CONNECT_DATA =
+    (SERVER = DEDICATED)
+    (SID = DG11)
+  )
+)
