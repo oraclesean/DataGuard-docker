@@ -4,6 +4,17 @@ Files for building an Oracle Data Guard database in Docker
 
 Currently working for version 19.3.
 
+# Disclaimer
+
+This is intended as an educational tool for learning and experimenting with Data Guard. 
+
+Want to understand how switchover works? Nice!
+Interested in learning more about Data Guard? Welcome!
+Need identical labs for students in a class or workshop? Awesome!
+Hacking out a preliminary demo solution or proof of concept? Cool!
+Want a portable, lightweight, fully functional Data Guard that runs on a laptop in Economy class? Enjoy!
+**Use this to protect a production environment? Bad idea.**
+
 # What does it do?
 This creates two containers each hosting Oracle databases and configures them as a Data Guard primary/secondary.
 
