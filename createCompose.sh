@@ -1,11 +1,11 @@
-# Set variables for environment
-export DG_DIR=~/docker-dataguard
-export ORADATA_VOLUME=~/oradata
+# Set variables for environment if not present
+export DG_DIR="${DG_DIR:-~/docker-dataguard}"
+export ORADATA_VOLUME="${ORADATA_VOLUME:-~/oradata}"
 
-# Set variables used by Docker, Compose:
-export DB_VERSION=19.3.0
-export COMPOSE_YAML=docker-compose.yml
-export IMAGE_NAME=oracle/database:${DB_VERSION}-ee
+# Set variables used by Docker, Compose if not present:
+export DB_VERSION="${DB_VERSION:-19.3.0}"
+export COMPOSE_YAML="${COMPOSE_YAML:-docker-compose.yml}"
+export IMAGE_NAME="${IMAGE_NAME:-oracle/database:${DB_VERSION}-ee}"
 
 # Create a docker-compose file and dynamically build the tnsnames.ora file
 # Initialize the docker-compose file:
